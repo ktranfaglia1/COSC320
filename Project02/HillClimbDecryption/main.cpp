@@ -206,17 +206,19 @@ int main() {
         if (!outputFile) {
             throw std::ios_base::failure("Error opening file ... Decypted Message was not successfully inputted in the text file 'DecyptedMessage.txt'");
         }
-        // Prints the English Alphabet and the final key, as in, the corresponding letter substitutions to output file
-        outputFile << "Final Key after " << counter << " iterations of the hill climb algorithm" << endl;
-        outputFile << ENGLISHALPHABET << endl;
-        for (int i = 0; i < ALPHABETLEGNTH; i++) {
-            outputFile << key[i];
+        else {
+            // Prints the English Alphabet and the final key, as in, the corresponding letter substitutions to output file
+            outputFile << "Final Key after " << counter << " iterations of the hill climb algorithm" << endl;
+            outputFile << ENGLISHALPHABET << endl;
+            for (int i = 0; i < ALPHABETLEGNTH; i++) {
+                outputFile << key[i];
+            }
+            outputFile << endl << endl;
+
+            outputFile << "Decryption using final key: " << endl << decryptedMessage; // Print the final message in output file
+
+            outputFile.close(); // Close output file
         }
-        outputFile << endl << endl;
-
-        outputFile << "Decryption using final key: " << endl << decryptedMessage; // Print the final message in output file
-
-        outputFile.close(); // Close output file
     }
     // If an error is thrown, catch it, display an error message and exit with fail
     catch (const exception& e) {

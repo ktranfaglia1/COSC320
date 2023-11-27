@@ -1,12 +1,15 @@
 /* Kyle Tranfaglia
- * COSC320 - Lab09
- * 11/17/2023
- * Program to take a matrix reprsentation of a graph, stored as a list of lists, and do a breadth-first and depth-first search
+ * COSC320 - Project03
+ * 12/01/2023
+ * Library of functions to take a matrix reprsentation of a graph, stored as a list of lists, and perform some analyses: cycle detection, minimal spanning tree, traversals, shortest path
 */
 #include <iostream>
+#include <fstream>
+#include <cstring>
 #include <vector>
 #include <deque>
 
+#include "tinyfiledialogs.h"
 #include "ListOfLists.h"
 
 using namespace std;
@@ -16,73 +19,59 @@ void Print(ListOfLists<int>);
 void breadthFirstTraversal(int, ListOfLists<int>);
 void depthFirstTraversal(int, ListOfLists<int>);
 void DFT(int, vector<int>&, ListOfLists<int>);
+bool istxt(const char*);
+
 
 int main() {
-	ListOfLists<int> matrix1(7, 7); // First matrix, 7x7
+	ListOfLists<int> adjacencyMatrix;
+	vector<int> tempVector;
+	string line = "";
+	double num = 0;
+	// Set-up for tiny dialog box: Gets an N-Gram file (.txt) from the user 
+    char const *lFilterPatterns[1] = { "*.txt" };
+    char *matrixFilename = tinyfd_openFileDialog("Open an adjaceny matrix file", NULL, 1, lFilterPatterns, "adjaceny matrix File", 0);
+    fstream matrixFile;
 
-	cout << "Matrix 1" << endl << "--------" << endl << endl;
-
-	// Set matrix ... position one 0 is A, 1 is B ... 1 in the matrix represents a mapping and 0 represents no existing edge
-	matrix1[0] = { 0, 1, 1, 0, 1, 0, 1 };
-	matrix1[1] = { 0, 1, 0, 1, 1, 0, 0 };
-	matrix1[2] = { 1, 1, 0, 0, 0, 1, 1 };
-	matrix1[3] = { 0, 0, 0, 0, 0, 1, 1 };
-	matrix1[4] = { 1, 0, 0, 1, 0, 1, 0 };
-	matrix1[5] = { 1, 0, 0, 0, 1, 0, 0 };
-	matrix1[6] = { 0, 1, 0, 1, 0, 0, 0 };
-
-	// Test breadth-first and depth-first Traversals (Searches) for the matrix representation of a graph and print the matrix
-	breadthFirstTraversal(0, matrix1);
-	cout << endl;
-	depthFirstTraversal(0, matrix1);
-	Print(matrix1);
-	cout << endl;
-
-	ListOfLists<int> matrix2(10, 10); // Second matrix, 10x10
-
-	cout << "Matrix 2" << endl << "--------" << endl << endl;
-
-	// Set matrix ... position one 0 is A, 1 is B ... 1 in the matrix represents a mapping and 0 represents no existing edge
-	matrix2[0] = { 0, 1, 0, 0, 0, 0, 0, 0, 1, 1 };
-	matrix2[1] = { 1, 0, 1, 0, 0, 0, 0, 0, 0, 1 };
-	matrix2[2] = { 0, 1, 0, 1, 0, 0, 0, 1, 0, 0 };
-	matrix2[3] = { 0, 0, 1, 0, 1, 0, 1, 0, 0, 0 };
-	matrix2[4] = { 0, 0, 0, 1, 0, 1, 0, 0, 0, 0 };
-	matrix2[5] = { 0, 0, 0, 0, 1, 0, 1, 0, 0, 0 };
-	matrix2[6] = { 0, 0, 0, 1, 0, 1, 0, 1, 0, 0 };
-	matrix2[7] = { 0, 0, 1, 0, 0, 0, 1, 0, 1, 0 };
-	matrix2[8] = { 1, 0, 0, 0, 0, 0, 0, 1, 0, 1 };
-	matrix2[9] = { 1, 1, 0, 0, 0, 0, 0, 0, 1, 0 };
-
-	// Test breadth-first and depth-first Traversals (Searches) for the matrix representation of a graph and print the matrix
-	breadthFirstTraversal(0, matrix2);
-	cout << endl;
-	depthFirstTraversal(0, matrix2);
-	Print(matrix2);
-	cout << endl;
-
-	ListOfLists<int> matrix3(10, 10); // Third matrix, 10x10
-
-	cout << "Matrix 3" << endl << "--------" << endl << endl;
-
-	// Set matrix ... position one 0 is A, 1 is B ... 1 in the matrix represents a mapping and 0 represents no existing edge
-	matrix3[0] = { 0, 1, 0, 0, 0, 0, 0, 0, 1, 0 };
-	matrix3[1] = { 1, 0, 1, 0, 0, 0, 0, 1, 0, 1 };
-	matrix3[2] = { 0, 1, 0, 1, 0, 0, 1, 0, 1, 0 };
-	matrix3[3] = { 0, 0, 1, 0, 1, 1, 0, 1, 0, 0 };
-	matrix3[4] = { 0, 0, 0, 1, 0, 0, 1, 0, 0, 0 };
-	matrix3[5] = { 0, 0, 0, 1, 0, 0, 1, 0, 0, 0 };
-	matrix3[6] = { 0, 0, 1, 0, 1, 1, 0, 1, 0, 0 };
-	matrix3[7] = { 0, 1, 0, 1, 0, 0, 1, 0, 1, 0 };
-	matrix3[8] = { 1, 0, 1, 0, 0, 0, 0, 1, 0, 1 };
-	matrix3[9] = { 0, 1, 0, 0, 0, 0, 0, 0, 1, 0 };
-
-	// Test breadth-first and depth-first Traversals (Searches) for the matrix representation of a graph and print the matrix
-	breadthFirstTraversal(3, matrix3);
-	cout << endl;
-	depthFirstTraversal(8, matrix3);
-	Print(matrix3);
-	cout << endl;
+    matrixFile.open(matrixFilename, ios::in); // Opens input file
+    // Try to open file and assess its contents. If the file is of the wrong type, fails to open, or fails within iss data extraction, an error will be caught 
+    try {
+        // Check if the filename is a valid string
+        if (!matrixFilename) {
+            throw std::invalid_argument("Invalid filename");
+        }
+        // Uses C-string fucntions to test if the filename ends in '.txt'
+        else if (!istxt(matrixFilename)) {
+            throw std::ios_base::failure("File must be of type '.txt'");
+        }
+        // Checks if file opened, if not, throws error
+        else if (!matrixFile) {
+            throw std::ios_base::failure("Error opening file ... an adjaceny matrix file is required for the program");
+        }
+        else {
+            cout << "Opening " << matrixFilename << endl; // File successfully opened
+            while (!matrixFile.eof() || !tempVector.empty()) {
+				if (tempVector.empty()) {
+					matrixFile >> num;
+					tempVector.push_back(num);
+				}
+				else if (matrixFile.get() == ' ') {
+					matrixFile >> num;
+					tempVector.push_back(num);
+				}
+				else {
+					adjacencyMatrix.push_back(tempVector);
+					tempVector.clear();
+				}
+			}
+			matrixFile.close(); // Closes input file
+            cout << "adjaceny matrix file loaded" << endl;
+        }
+    } // If there is an error thrown, catch it and print the error with a program exit
+    catch (const exception& e) {
+        cout << "Error: " << e.what() << endl;
+        exit(1);
+    }
+	Print(adjacencyMatrix);
 
 	return 0;
 }
@@ -139,4 +128,15 @@ void depthFirstTraversal(int startVertex, ListOfLists<int> matrix) {
 	cout << "Depth First Traversal starting from vertex " << static_cast<char>(startVertex + 'A') << ": " << endl;
 	DFT(startVertex, visited, matrix); // Call recursive function
 	cout << endl;
+}
+// Function to check that the file extension is "txt"
+bool istxt(const char* filename) {
+    bool status = true;
+    // Get the length of the filename
+    size_t len = strlen(filename);
+    // Uses C-string functions to check that the file extension is ".txt"
+    if (len < 4 || strcmp(filename + len - 4, ".txt") != 0) {
+        status = false;
+    }
+    return status;
 }
