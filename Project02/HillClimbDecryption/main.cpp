@@ -30,6 +30,7 @@ int main() {
     const string ENGLISHFREQUENCY = "ETAOINSHRDLCUMWFGYPBVKJXQZ"; // Most common to least common English letters
     const string ENGLISHALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"; // English alphabet
     const int ALPHABETLEGNTH = 26, MAXPASSES = 100; // Constants for loops
+    fstream outputFile; // Output file for final key and decryped message
     Map<string, double> NGramMap; // Map for N-Gram structure
     vector<pair<char, int>> cypherCharFrequency; // Vector for cypher letter frequencies and corresponding letter
     // Temporary strings for instreaming, messages variables, and key variables
@@ -184,7 +185,7 @@ int main() {
         } // Runs as long as max iterations has not been reached and best fitness measure is still increasing
     } while ((counter < MAXPASSES) && (bestFitnessMeasure > tempFitnessMeasure));
 
-    // Print the English Alphabet and the final key, as in, the corresponding letter substitutions
+    // Print the English Alphabet and the final key, as in, the corresponding letter substitutions to console
     cout << "Final Key after " << counter << " iterations of the hill climb algorithm" << endl;
     cout << ENGLISHALPHABET << endl;
     for (int i = 0; i < ALPHABETLEGNTH; i++) {
@@ -196,8 +197,33 @@ int main() {
     decryptedMessage = encryptedMessage;
     decryptMessage(decryptedMessage, key);
     
-    cout << "Decryption using final key: " << endl << decryptedMessage << endl; // Print the final message
+    cout << "Decryption using final key: " << endl << decryptedMessage << endl; // Print the final message to console
 
+    // Try to print results to output file
+    try {
+        outputFile.open("DecyptedMessage.txt", ios::out); // Open output file
+        // If file failed to open, throw error
+        if (!outputFile) {
+            throw std::ios_base::failure("Error opening file ... Decypted Message was not successfully inputted in the text file 'DecyptedMessage.txt'");
+        }
+        // Prints the English Alphabet and the final key, as in, the corresponding letter substitutions to output file
+        outputFile << "Final Key after " << counter << " iterations of the hill climb algorithm" << endl;
+        outputFile << ENGLISHALPHABET << endl;
+        for (int i = 0; i < ALPHABETLEGNTH; i++) {
+            outputFile << key[i];
+        }
+        outputFile << endl << endl;
+
+        outputFile << "Decryption using final key: " << endl << decryptedMessage; // Print the final message in output file
+
+        outputFile.close(); // Close output file
+    }
+    // If an error is thrown, catch it, display an error message and exit with fail
+    catch (const exception& e) {
+        cout << "Error: " << e.what() << endl;
+        exit(1);
+    }
+    
     return 0;
 }
 // Comparator function for algorithm sort to sort the vector pairs in descending order based on frequency values only
