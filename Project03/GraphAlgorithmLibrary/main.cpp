@@ -78,6 +78,8 @@ int main() {
 	Print(adjacencyMatrix);
 	cout << endl;
 	dijkstra(0, adjacencyMatrix);
+	cout << endl;
+	ford(0, adjacencyMatrix);
 
 	return 0;
 }
@@ -159,7 +161,7 @@ void dijkstra(int startVertex, ListOfLists<double>& matrix) {
 		visited[minIndex] = 1; // Denote the selected vertex as visited
 		// Loop to update the distances of neighboring vertices
 		for (int k = 0; k < matrixSize; k++) {
-			// Check that vertex not vistied, an edge exists to the vertex, the distance is not infinity, and finally, if there is a shorter path utilizing a neighboring vertex
+			// Check that vertex not vistied, an edge exists to the vertex, the distance is valid (not INF), and finally, if there is a shorter path utilizing a neighboring vertex
 			if (!visited[k] && matrix[minIndex][k] != 0.0 && distance[minIndex] != INF && distance[minIndex] + matrix[minIndex][k] < distance[k]) {
 				distance[k] = distance[minIndex] + matrix[minIndex][k];
 			}
@@ -178,11 +180,12 @@ void ford(int startVertex, ListOfLists<double> &matrix) {
 	vector<double> distance(matrixSize, INF); // Vector to hold the distances from a vertex (starting vertex) initialized with infinity and will be updated throughout the algorithm
 
 	distance[startVertex] = 0.0; // Sets the starting vertex distance to zero (no distance from start vertex to itself)
-
+	// Fords algorithm to iteratively relax the over-estimated weights (INF) and continue to update the path weight until shortest path is determined
 	for (int i = 0; i < matrixSize - 1; i++) {
 		for (int j = 0; j < matrixSize; j++) {
 			for (int k = 0; k < matrixSize; k++) {
-				if (distance[j] != INF && distance[j] + matrix[j][k] < distance[k]) {
+				// Checks if the edge to vertex exists, if its a valid path distance (not INF), and if the path is shorter than what is currently stored 
+				if (matrix[j][k] != 0.0 && distance[j] != INF && distance[j] + matrix[j][k] < distance[k]) {
 					distance[k] = distance[j] + matrix[j][k];
 					if (distance[k] < 0.0) {
 						cout << "Negative Weight Cycle Detected ... Ford's algorithm cannot Compute the shortest path for this matrix" << endl;
