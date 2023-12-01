@@ -3,6 +3,7 @@
  * 12/01/2023
  * Library of functions to take a matrix reprsentation of a graph, stored as a list of lists, and perform some analyses: cycle detection, minimal spanning tree, traversals, shortest path
 */
+#include <algorithm>
 #include <iostream>
 #include <fstream>
 #include <cstring>
@@ -22,6 +23,10 @@ void depthFirstTraversal(int, ListOfLists<double>&);
 void DFT(int, vector<int>&, ListOfLists<double>&);
 void dijkstra(int, ListOfLists<double>&);
 void ford(int, ListOfLists<double>&);
+void cycleDFS(int, int &, bool &, vector<double> &, ListOfLists<double>&);
+bool detectCycles(ListOfLists<double>&);
+bool cycleDFS2(int, vector<bool>&, vector<bool>&, ListOfLists<double>&);
+bool detectCycles2(ListOfLists<double>&);
 bool istxt(const char*);
 
 int main() {
@@ -81,6 +86,18 @@ int main() {
 	cout << endl;
 	ford(0, adjacencyMatrix);
 
+	if (detectCycles(adjacencyMatrix)) {
+		cout << "Matrix contains a cycle" << endl;
+	}
+	else {
+		cout << "Matrix does not contain a cycle" << endl;
+	}
+	if (detectCycles2(adjacencyMatrix)) {
+		cout << "Matrix contains a cycle" << endl;
+	}
+	else {
+		cout << "Matrix does not contain a cycle" << endl;
+	}
 	return 0;
 }
 // Print function to iteratively display the list of lists in a matrix format
@@ -137,7 +154,7 @@ void depthFirstTraversal(int startVertex, ListOfLists<double> &matrix) {
 	DFT(startVertex, visited, matrix); // Call recursive function
 	cout << endl;
 }
-// Fucntion to perform dijsktra's algorithm to find the shortest path from a starting vertex to each other vertex in the graph using a adjacency matrix represented as a list of lists
+// Fucntion to perform Dijsktra's algorithm to find the shortest path from a starting vertex to each other vertex in the graph using a adjacency matrix represented as a list of lists
 void dijkstra(int startVertex, ListOfLists<double>& matrix) {
 	const double INF = numeric_limits<double>::infinity(); // Store infinity representation for a double
 	int matrixSize = matrix.size(); // Get size of matrix
@@ -173,6 +190,7 @@ void dijkstra(int startVertex, ListOfLists<double>& matrix) {
 		cout << static_cast<char>('A' + startVertex) << " - " << static_cast<char>('A' + i) << ": " << distance[i] << endl;
 	}
 }
+// Fucntion to perform Fords's algorithm to find the shortest path from a starting vertex to each other vertex in the graph using a adjacency matrix represented as a list of lists
 void ford(int startVertex, ListOfLists<double> &matrix) {
 	const double INF = numeric_limits<double>::infinity(); // Store infinity representation for a double
 	int matrixSize = matrix.size(); // Get size of matrix
@@ -187,11 +205,17 @@ void ford(int startVertex, ListOfLists<double> &matrix) {
 				// Checks if the edge to vertex exists, if its a valid path distance (not INF), and if the path is shorter than what is currently stored 
 				if (matrix[j][k] != 0.0 && distance[j] != INF && distance[j] + matrix[j][k] < distance[k]) {
 					distance[k] = distance[j] + matrix[j][k];
-					if (distance[k] < 0.0) {
-						cout << "Negative Weight Cycle Detected ... Ford's algorithm cannot Compute the shortest path for this matrix" << endl;
-						return;
-					}
 				}
+			}
+		}
+	}
+	// Error Check Ford Algorithm: Tests if there is a negative weight cycles which causes Ford's algorithm to fail and thus we must return without printing the incorrect result 
+	for (int j = 0; j < matrixSize; j++) {
+		for (int k = 0; k < matrixSize; k++) {
+			// Checks if the edge to vertex exists, if its a valid path distance (not INF), and if the path is shorter than what is currently stored ... If this continues Ford's Algorithm so there is a negative weight cycle
+			if (matrix[j][k] != 0.0 && distance[j] != INF && distance[j] + matrix[j][k] < distance[k]) {
+				cout << "Negative Weight Cycle Detected ... Ford's algorithm cannot Compute the shortest path for this matrix" << endl;
+				return; // Return after error message to avoid the result print out
 			}
 		}
 	}
@@ -200,6 +224,95 @@ void ford(int startVertex, ListOfLists<double> &matrix) {
 	for (int i = 0; i < matrixSize; i++) {
 		cout << static_cast<char>('A' + startVertex) << " - " << static_cast<char>('A' + i) << ": " << distance[i] << endl;
 	}
+}
+// Set-up function for cycle detection using a adjacency matrix represented as a list of lists to represent a graph - calls recursive DFS function to detect a cycle
+bool detectCycles(ListOfLists<double> &matrix) {
+	// Variables
+	vector<double> num; // Vector to hold vertex values
+	int count = 1; // Counter
+	bool cycle = false; // Store cycle detection results
+	// Initialize the number vector with 0s
+	for (int i = 0; i < matrix.size(); i++) {
+		num.push_back(0);
+	}
+	// Search for a cycle as long as there exists a 0 in the number vector ... will equal num.end() when find fails and exit loop
+	while (find(num.begin(), num.end(), 0) < num.end()) {
+		int pos = find(num.begin(), num.end(), 0) - num.begin(); // Get the position of the 0
+		cycleDFS(pos, count, cycle, num, matrix); // Call recursive DFS function to detect a cycle
+	}
+	return cycle;
+}
+// Recursive DFS function to detect a cycle
+void cycleDFS(int pos, int &count, bool &cycle, vector<double> &num, ListOfLists<double> &matrix) {
+	// Variables
+	const double INF = numeric_limits<double>::infinity(); // Store infinity representation for a double
+	vector<double> Adj = matrix[pos]; // Get the nested list of vertex connections
+	num[pos] = count++; // Set number vector at position to count
+	// Loop through entire vertex adjacency vector and check for non-zero values 
+	for (long unsigned int i = 0; i < Adj.size(); i++) {
+		double vertex = Adj[i]; // Get vertex value
+		// check for non-zero vertex
+		if (vertex != 0.0) {
+			// Check if number is 0
+			if (num[i] == 0.0) {
+				cycleDFS(i, count, cycle, num, matrix); // Recursive call
+			} 
+			// Check if number is INF
+			else if (num[i] != INF) {
+				cycle = true; // Cycle found!
+			}
+		}
+	}
+	num[pos] = INF; // Sets number vector at position to INF (no longer count)
+}
+// *Note: The following version of cycle detection only works on directed graphs
+// Alternative method to detecting cycles: Set-up function for cycle detection using a adjacency matrix represented as a list of lists to represent a graph - calls recursive DFS function to detect a cycle
+bool detectCycles2(ListOfLists<double> &matrix) {
+    int matrixSize = matrix.size(); // Store matrix size
+	// Boolean vectors to track visited vertices and vertices in the current recursion stack
+    vector<bool> visited(matrixSize, false);
+    vector<bool> stack(matrixSize, false);
+	// Perform a DFS with recursive function for all vertices
+    for (int i = 0; i < matrixSize; ++i) {
+		// If vertex has not been visited
+        if (!visited[i]) {
+			// Call recursive function to check for a cycle ... returns true if cycle found
+            if (cycleDFS2(i, visited, stack, matrix)) {
+                return true;
+			}
+        }
+    }
+    return false;
+}
+// *Note: The following version of cycle detection only works on directed graphs
+// Alternative method to detecting cycles: Recursive DFS function to detect a cycle
+bool cycleDFS2(int vertex, vector<bool>& visited, vector<bool>& stack, ListOfLists<double> &matrix) {
+	// Set the current vertex as visited and add it to the recursion stack
+    visited[vertex] = true;
+    stack[vertex] = true;
+	// Traverse all the neighboring (adjacent) verticies to the current vertex
+    for (int i = 0; i < matrix.size(); ++i) {
+		// Check if there is an edge from the current vertex to its neighbor 
+        if (matrix[vertex][i] != 0.0) {
+			// If the neighbor is not visited, check for cycles with recursive calls
+            if (!visited[i]) {
+				// Call recursive function to check for a cycle ... returns true if cycle found
+                if (cycleDFS2(i, visited, stack, matrix)) {
+                    return true;
+				}
+            }
+			// If the neighbor is already in the recursion stack, there exists a cycle, so retrun true
+			else if (stack[i]) {
+                return true;
+            }
+        }
+    }
+    stack[vertex] = false; // Backtracking ... remove the current vertex from the recursion stack
+    return false;
+}
+void KruskalAlgorithm(ListOfLists<double> &matrix) {
+    
+
 }
 // Function to check that the file extension is "txt"
 bool istxt(const char* filename) {
