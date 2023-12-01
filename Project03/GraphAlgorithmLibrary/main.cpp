@@ -23,11 +23,14 @@ void depthFirstTraversal(int, ListOfLists<double>&);
 void DFT(int, vector<int>&, ListOfLists<double>&);
 void dijkstra(int, ListOfLists<double>&);
 void ford(int, ListOfLists<double>&);
-void kruskalAlgorithm(ListOfLists<double>&);
+void kruskal(ListOfLists<double>&);
 void cycleDFS(int, int &, bool &, vector<double> &, ListOfLists<double>&);
+void boruvka(ListOfLists<double>&);
+void jarnikPrim(ListOfLists<double>&);
 bool detectCycles(ListOfLists<double>&);
 bool cycleDFS2(int, int, vector<bool>&, ListOfLists<double>&);
 bool detectCycles2(ListOfLists<double>&);
+bool isSymmetric(ListOfLists<double>&);
 bool istxt(const char*);
 
 int main() {
@@ -38,7 +41,7 @@ int main() {
 	// Set-up for tiny dialog box: Gets an N-Gram file (.txt) from the user 
     // char const *lFilterPatterns[1] = { "*.txt" };
     // char *matrixFileName = tinyfd_openFileDialog("Open an adjaceny matrix file", NULL, 1, lFilterPatterns, "adjaceny matrix File", 0);
-	char *matrixFileName = "MatrixTest3.txt";
+	char *matrixFileName = "MatrixTest4.txt";
     fstream matrixFile;
 
     matrixFile.open(matrixFileName, ios::in); // Opens input file
@@ -73,34 +76,44 @@ int main() {
 				}
 			}
 			matrixFile.close(); // Closes input file
-            cout << "adjaceny matrix file loaded" << endl;
+            cout << "Adjaceny matrix file loaded" << endl;
         }
     } // If there is an error thrown, catch it and print the error with a program exit
     catch (const exception& e) {
         cout << "Error: " << e.what() << endl;
         exit(1);
     }
-	cout << endl;
+	// Do the Algorithms
+	cout << endl << "Matrix\n------" << endl;
 	Print(adjacencyMatrix);
-	cout << endl;
+	cout << "\nDijkstra's algorithm\n--------------------" << endl;
 	dijkstra(0, adjacencyMatrix);
-	cout << endl;
+	cout << "\nFord's algorithm\n----------------" << endl;
 	ford(0, adjacencyMatrix);
-	cout << endl;
-	kruskalAlgorithm(adjacencyMatrix);
-
-
-	if (detectCycles(adjacencyMatrix)) {
-		cout << "Matrix contains a cycle" << endl;
+	cout << "\nKruskal's algorithm\n-------------------" << endl;
+	kruskal(adjacencyMatrix);
+	cout << "\nBoruvka's algorithm\n-------------------" << endl;
+	boruvka(adjacencyMatrix);
+	cout << "\nJarnik & Prim's algorithm\n-------------------------" << endl;
+	jarnikPrim(adjacencyMatrix);
+	// Check if the matrix is symmetric to determine the appropriate cycle detection function to use
+	if (!isSymmetric(adjacencyMatrix)) {
+		cout << "\nThis is a directed graph" << endl;
+		if (detectCycles(adjacencyMatrix)) {
+			cout << "Matrix contains a cycle" << endl;
+		}
+		else {
+			cout << "Matrix does not contain a cycle" << endl;
+		}
 	}
 	else {
-		cout << "Matrix does not contain a cycle" << endl;
-	}
-	if (detectCycles2(adjacencyMatrix)) {
-		cout << "Matrix contains a cycle" << endl;
-	}
-	else {
-		cout << "Matrix does not contain a cycle" << endl;
+		cout << "\nThis is an undirected graph" << endl;
+		if (detectCycles2(adjacencyMatrix)) {
+			cout << "Matrix contains a cycle" << endl;
+		}
+		else {
+			cout << "Matrix does not contain a cycle" << endl;
+		}
 	}
 	return 0;
 }
@@ -275,8 +288,7 @@ void cycleDFS(int pos, int &count, bool &cycle, vector<double> &num, ListOfLists
 // Alternative method to detecting cycles: Set-up function for cycle detection using a adjacency matrix represented as a list of lists to represent a graph - calls recursive DFS function to detect a cycle
 bool detectCycles2(ListOfLists<double> &matrix) {
     int matrixSize = matrix.size(); // Store matrix size
-	// Boolean vectors to track visited vertices
-    vector<bool> visited(matrixSize, false);
+    vector<bool> visited(matrixSize, false); // Boolean vector to track visited vertices
 	// Perform a DFS with recursive function for all vertices
     for (int i = 0; i < matrixSize; ++i) {
 		// If vertex has not been visited
@@ -292,8 +304,7 @@ bool detectCycles2(ListOfLists<double> &matrix) {
 // *Note: The following version of cycle detection only works on undirected graphs
 // Alternative method to detecting cycles: Recursive DFS function to detect a cycle
 bool cycleDFS2(int vertex, int parent, vector<bool>& visited, ListOfLists<double> &matrix) {
-	// Set the current vertex as visited
-    visited[vertex] = true;
+    visited[vertex] = true; // Set the current vertex as visited
 	// Traverse all the neighboring (adjacent) verticies to the current vertex
     for (int i = 0; i < matrix.size(); ++i) {
 		// Check if there is an edge from the current vertex to its neighbor 
@@ -313,34 +324,179 @@ bool cycleDFS2(int vertex, int parent, vector<bool>& visited, ListOfLists<double
     }
     return false;
 }
-void kruskalAlgorithm(ListOfLists<double> &matrix) {
+// Fucntion to perform kruskal's algorithm to find a minimal spanning tree of a connected undirected graph using a adjacency matrix represented as a list of lists
+void kruskal(ListOfLists<double> &matrix) {
 	// Variables
-    int matrixSize = matrix.size();
-    vector<pair<int, int>> edges;
-    ListOfLists<double> minimumSpanningTree(matrixSize, matrixSize);
-
-    // Build edges from the matrix's adjacency matrix
+    int matrixSize = matrix.size(); // Store matrix size
+    vector<pair<int, int>> edges; // Create a vector pair to represent the edges in the graph (from and to verticies)
+    ListOfLists<double> minimumSpanningTree(matrixSize, matrixSize); // Create a matrix to hold the minimum spanning tree
+    // Build edges from the matrix's adjacency matrix by going through entire matrix
     for (int i = 0; i < matrixSize; i++) {
         for (int j = i + 1; j < matrixSize; j++) {
+			// Check that there exists an edge (not zero)
             if (matrix[i][j] != 0.0) {
-                edges.emplace_back(i, j);
+                edges.emplace_back(i, j); // Create and insert the edge in the vector of edges
             }
         }
     }
-
-    // Sort edges by weight in ascending order
-    sort(edges.begin(), edges.end());
-
+    // Sort edges by weight in ascending order ... I am unsure how I feel about writing the comparator this way
+    sort(edges.begin(), edges.end(), [&](const pair<int, int>& a, const pair<int, int>& b) {
+        return matrix[a.first][a.second] < matrix[b.first][b.second];
+    });
+	// Get the weights of all the edges in the graph, from smallest to largest weighted edge, and assign them to the minimal spanning tree ... If adding an edge weight creates a cycle, remove it
     for (const auto& edge : edges) {
+		// Gets both row and column representation of edge weight (symmetric since graph must be undriected)
         minimumSpanningTree[edge.first][edge.second] = matrix[edge.first][edge.second];
         minimumSpanningTree[edge.second][edge.first] = matrix[edge.first][edge.second];
-		
+		// Check if adding an edge weight creates a cycle, if so, remove it
         if (detectCycles2(minimumSpanningTree)) {
             minimumSpanningTree[edge.first][edge.second] = minimumSpanningTree[edge.second][edge.first] = 0.0; // Remove the last edge if it creates a cycle
 		}
 	}
-	Print(minimumSpanningTree);
+	// Print the minimum spanning tree
+    cout << "Minimum Spanning Tree Edges:" << endl;
+    for (int i = 0; i < matrixSize; ++i) {
+        for (int j = i + 1; j < matrixSize; ++j) {
+            if (minimumSpanningTree[i][j] != 0.0) {
+                cout << "Edge: " << static_cast<char>('A' + i) << " - " << static_cast<char>('A' + j) << " Weight: " << minimumSpanningTree[i][j] << endl;
+            }
+        }
+    }
+	cout << endl;
+	Print(minimumSpanningTree); // Display the minimum spanning tree
+}
+void boruvka(ListOfLists<double> &matrix) {
+	int numVertices = matrix.size();
 
+    // Initialize each vertex as the root of its own tree
+    vector<int> components(numVertices);
+    for (int i = 0; i < numVertices; ++i) {
+        components[i] = i;
+    }
+
+    while (true) {
+        // To keep track of minimum weight edges for each component
+        vector<double> minEdgeWeight(numVertices, numeric_limits<double>::infinity());
+        vector<pair<int, int>> minEdge(numVertices, {-1, -1});
+
+        // Iterate through each edge and update minimum weight edges
+        for (int i = 0; i < numVertices; ++i) {
+            for (int j = 0; j < numVertices; ++j) {
+                if (matrix[i][j] != 0.0) {
+                    int componentI = components[i];
+                    int componentJ = components[j];
+
+                    if (componentI != componentJ && matrix[i][j] < minEdgeWeight[componentI]) {
+                        minEdgeWeight[componentI] = matrix[i][j];
+                        minEdge[componentI] = {i, j};
+                    }
+                }
+            }
+        }
+
+        // Check if there is only one component remaining
+        int uniqueComponents = 0;
+        int root = -1;
+        for (int i = 0; i < numVertices; ++i) {
+            if (components[i] == i) {
+                ++uniqueComponents;
+                root = i;
+            }
+        }
+
+        if (uniqueComponents == 1) {
+            break; // Only one component left, the minimum spanning tree is formed
+        }
+
+        // Combine trees based on the minimum weight edges
+        for (int i = 0; i < numVertices; ++i) {
+            if (minEdge[i].first != -1) {
+                int componentI = components[minEdge[i].first];
+                int componentJ = components[minEdge[i].second];
+
+                if (componentI != componentJ) {
+                    // Combine the trees
+                    components[componentJ] = componentI;
+
+                    // Update the graph to reflect the new component structure
+                    for (int k = 0; k < numVertices; ++k) {
+                        if (components[k] == componentJ) {
+                            components[k] = componentI;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Output the minimum weight edges forming the minimum spanning tree
+        for (int i = 0; i < numVertices; ++i) {
+            if (minEdge[i].first != -1) {
+                cout << "Edge: " << minEdge[i].first << " - " << minEdge[i].second << " Weight: " << minEdgeWeight[i] << endl;
+            }
+        }
+    }
+}
+void jarnikPrim(ListOfLists<double>& matrix) {
+	int numVertices = matrix.size();
+
+    // Initialize a list to store the resulting minimum spanning tree
+    ListOfLists<double> minimumSpanningTree(numVertices, numVertices);
+
+    // List to store all edges of the graph sorted by weight
+    vector<pair<pair<int, int>, double>> edges;
+    for (int i = 0; i < numVertices; ++i) {
+        for (int j = i + 1; j < numVertices; ++j) {
+            if (matrix[i][j] != 0.0) {
+                edges.emplace_back(make_pair(i, j), matrix[i][j]);
+            }
+        }
+    }
+
+    sort(edges.begin(), edges.end(), [](const pair<pair<int, int>, double>& a, const pair<pair<int, int>, double>& b) {
+		return a.second < b.second;
+	});
+
+    // Array to keep track of whether a vertex is included in the minimum spanning tree
+    vector<bool> inTree(numVertices, false);
+
+    // Add the first vertex to the tree
+    inTree[0] = true;
+
+    // Iterate through all edges and add them to the minimum spanning tree if they satisfy conditions
+    for (int i = 1; i < numVertices; ++i) {
+        for (const auto& edge : edges) {
+            int u = edge.first.first;
+            int v = edge.first.second;
+
+            if ((inTree[u] && !inTree[v]) || (inTree[v] && !inTree[u])) {
+                minimumSpanningTree[u][v] = minimumSpanningTree[v][u] = matrix[u][v];
+                inTree[u] = inTree[v] = true;
+                break;
+            }
+        }
+    }
+
+    // Output the minimum spanning tree
+    for (int i = 0; i < numVertices; ++i) {
+        for (int j = i + 1; j < numVertices; ++j) {
+            if (minimumSpanningTree[i][j] != 0.0) {
+                cout << "Edge: " << static_cast<char>('A' + i) << " - " << static_cast<char>('A' + j) << " Weight: " << minimumSpanningTree[i][j] << endl;
+            }
+        }
+    }
+}
+// Function to determine if a matrix represented as a list of lists is symmetric, meaning the graph is undirected
+bool isSymmetric(ListOfLists<double>& matrix) {
+    // Check if the matrix is symmetric by comparing the matrix at each lower triangular position and its diagonal mirrior 
+    for (int i = 1; i < matrix.size(); i++) {
+        for (int j = 0; j < i; j++) {
+			// Check if matrix at position and its diagonal mirrior are the same, if not, return false ... matrix is not symmetric
+            if (matrix[i][j] != matrix[j][i]) {
+                return false;
+            }
+        }
+    }
+    return true;
 }
 // Function to check that the file extension is "txt"
 bool istxt(const char* filename) {
