@@ -23,6 +23,7 @@ void depthFirstTraversal(int, ListOfLists<double>&);
 void DFT(int, vector<int>&, ListOfLists<double>&);
 void dijkstra(int, ListOfLists<double>&);
 void ford(int, ListOfLists<double>&);
+void kruskalAlgorithm(ListOfLists<double>&);
 void cycleDFS(int, int &, bool &, vector<double> &, ListOfLists<double>&);
 bool detectCycles(ListOfLists<double>&);
 bool cycleDFS2(int, vector<bool>&, vector<bool>&, ListOfLists<double>&);
@@ -37,7 +38,7 @@ int main() {
 	// Set-up for tiny dialog box: Gets an N-Gram file (.txt) from the user 
     // char const *lFilterPatterns[1] = { "*.txt" };
     // char *matrixFileName = tinyfd_openFileDialog("Open an adjaceny matrix file", NULL, 1, lFilterPatterns, "adjaceny matrix File", 0);
-	char *matrixFileName = "MatrixTest1.txt";
+	char *matrixFileName = "MatrixTest3.txt";
     fstream matrixFile;
 
     matrixFile.open(matrixFileName, ios::in); // Opens input file
@@ -85,6 +86,9 @@ int main() {
 	dijkstra(0, adjacencyMatrix);
 	cout << endl;
 	ford(0, adjacencyMatrix);
+	cout << endl;
+	kruskalAlgorithm(adjacencyMatrix);
+
 
 	if (detectCycles(adjacencyMatrix)) {
 		cout << "Matrix contains a cycle" << endl;
@@ -310,8 +314,33 @@ bool cycleDFS2(int vertex, vector<bool>& visited, vector<bool>& stack, ListOfLis
     stack[vertex] = false; // Backtracking ... remove the current vertex from the recursion stack
     return false;
 }
-void KruskalAlgorithm(ListOfLists<double> &matrix) {
-    
+void kruskalAlgorithm(ListOfLists<double> &matrix) {
+	// Variables
+    int matrixSize = matrix.size();
+    vector<pair<int, int>> edges;
+    ListOfLists<double> minimumSpanningTree(matrixSize, matrixSize);
+
+    // Build edges from the matrix's adjacency matrix
+    for (int i = 0; i < matrixSize; i++) {
+        for (int j = i + 1; j < matrixSize; j++) {
+            if (matrix[i][j] != 0.0) {
+                edges.emplace_back(i, j);
+            }
+        }
+    }
+
+    // Sort edges by weight in ascending order
+    sort(edges.begin(), edges.end());
+
+    for (const auto& edge : edges) {
+        minimumSpanningTree[edge.first][edge.second] = matrix[edge.first][edge.second];
+        minimumSpanningTree[edge.second][edge.first] = matrix[edge.first][edge.second];
+		
+        if (detectCycles(minimumSpanningTree)) {
+            minimumSpanningTree[edge.first][edge.second] = minimumSpanningTree[edge.second][edge.first] = 0.0; // Remove the last edge if it creates a cycle
+		}
+	}
+	Print(minimumSpanningTree);
 
 }
 // Function to check that the file extension is "txt"
