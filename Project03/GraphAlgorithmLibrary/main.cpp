@@ -26,7 +26,7 @@ void ford(int, ListOfLists<double>&);
 void kruskalAlgorithm(ListOfLists<double>&);
 void cycleDFS(int, int &, bool &, vector<double> &, ListOfLists<double>&);
 bool detectCycles(ListOfLists<double>&);
-bool cycleDFS2(int, vector<bool>&, vector<bool>&, ListOfLists<double>&);
+bool cycleDFS2(int, int, vector<bool>&, ListOfLists<double>&);
 bool detectCycles2(ListOfLists<double>&);
 bool istxt(const char*);
 
@@ -229,6 +229,7 @@ void ford(int startVertex, ListOfLists<double> &matrix) {
 		cout << static_cast<char>('A' + startVertex) << " - " << static_cast<char>('A' + i) << ": " << distance[i] << endl;
 	}
 }
+// *Note: The following version of cycle detection only works on directed graphs
 // Set-up function for cycle detection using a adjacency matrix represented as a list of lists to represent a graph - calls recursive DFS function to detect a cycle
 bool detectCycles(ListOfLists<double> &matrix) {
 	// Variables
@@ -246,6 +247,7 @@ bool detectCycles(ListOfLists<double> &matrix) {
 	}
 	return cycle;
 }
+// *Note: The following version of cycle detection only works on directed graphs
 // Recursive DFS function to detect a cycle
 void cycleDFS(int pos, int &count, bool &cycle, vector<double> &num, ListOfLists<double> &matrix) {
 	// Variables
@@ -269,31 +271,29 @@ void cycleDFS(int pos, int &count, bool &cycle, vector<double> &num, ListOfLists
 	}
 	num[pos] = INF; // Sets number vector at position to INF (no longer count)
 }
-// *Note: The following version of cycle detection only works on directed graphs
+// *Note: The following version of cycle detection only works on undirected graphs
 // Alternative method to detecting cycles: Set-up function for cycle detection using a adjacency matrix represented as a list of lists to represent a graph - calls recursive DFS function to detect a cycle
 bool detectCycles2(ListOfLists<double> &matrix) {
     int matrixSize = matrix.size(); // Store matrix size
-	// Boolean vectors to track visited vertices and vertices in the current recursion stack
+	// Boolean vectors to track visited vertices
     vector<bool> visited(matrixSize, false);
-    vector<bool> stack(matrixSize, false);
 	// Perform a DFS with recursive function for all vertices
     for (int i = 0; i < matrixSize; ++i) {
 		// If vertex has not been visited
         if (!visited[i]) {
 			// Call recursive function to check for a cycle ... returns true if cycle found
-            if (cycleDFS2(i, visited, stack, matrix)) {
+            if (cycleDFS2(i, -1, visited, matrix)) {
                 return true;
 			}
         }
     }
     return false;
 }
-// *Note: The following version of cycle detection only works on directed graphs
+// *Note: The following version of cycle detection only works on undirected graphs
 // Alternative method to detecting cycles: Recursive DFS function to detect a cycle
-bool cycleDFS2(int vertex, vector<bool>& visited, vector<bool>& stack, ListOfLists<double> &matrix) {
-	// Set the current vertex as visited and add it to the recursion stack
+bool cycleDFS2(int vertex, int parent, vector<bool>& visited, ListOfLists<double> &matrix) {
+	// Set the current vertex as visited
     visited[vertex] = true;
-    stack[vertex] = true;
 	// Traverse all the neighboring (adjacent) verticies to the current vertex
     for (int i = 0; i < matrix.size(); ++i) {
 		// Check if there is an edge from the current vertex to its neighbor 
@@ -301,17 +301,16 @@ bool cycleDFS2(int vertex, vector<bool>& visited, vector<bool>& stack, ListOfLis
 			// If the neighbor is not visited, check for cycles with recursive calls
             if (!visited[i]) {
 				// Call recursive function to check for a cycle ... returns true if cycle found
-                if (cycleDFS2(i, visited, stack, matrix)) {
+                if (cycleDFS2(i, vertex, visited, matrix)) {
                     return true;
 				}
             }
-			// If the neighbor is already in the recursion stack, there exists a cycle, so retrun true
-			else if (stack[i]) {
+			// If the neighbor is visited and not the parent, a back edge is detected and there exists a cycle, so retrun true
+			else if (i != parent) {
                 return true;
             }
         }
     }
-    stack[vertex] = false; // Backtracking ... remove the current vertex from the recursion stack
     return false;
 }
 void kruskalAlgorithm(ListOfLists<double> &matrix) {
@@ -336,7 +335,7 @@ void kruskalAlgorithm(ListOfLists<double> &matrix) {
         minimumSpanningTree[edge.first][edge.second] = matrix[edge.first][edge.second];
         minimumSpanningTree[edge.second][edge.first] = matrix[edge.first][edge.second];
 		
-        if (detectCycles(minimumSpanningTree)) {
+        if (detectCycles2(minimumSpanningTree)) {
             minimumSpanningTree[edge.first][edge.second] = minimumSpanningTree[edge.second][edge.first] = 0.0; // Remove the last edge if it creates a cycle
 		}
 	}
