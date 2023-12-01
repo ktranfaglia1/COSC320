@@ -10,6 +10,7 @@
 #include <limits>
 #include <vector>
 #include <deque>
+#include <set>
 
 #include "tinyfiledialogs.h"
 #include "ListOfLists.h"
@@ -90,12 +91,6 @@ int main() {
 	dijkstra(0, adjacencyMatrix);
 	cout << "\nFord's algorithm\n----------------" << endl;
 	ford(0, adjacencyMatrix);
-	cout << "\nKruskal's algorithm\n-------------------" << endl;
-	kruskal(adjacencyMatrix);
-	cout << "\nBoruvka's algorithm\n-------------------" << endl;
-	boruvka(adjacencyMatrix);
-	cout << "\nJarnik & Prim's algorithm\n-------------------------" << endl;
-	jarnikPrim(adjacencyMatrix);
 	// Check if the matrix is symmetric to determine the appropriate cycle detection function to use
 	if (!isSymmetric(adjacencyMatrix)) {
 		cout << "\nThis is a directed graph" << endl;
@@ -107,6 +102,12 @@ int main() {
 		}
 	}
 	else {
+		cout << "\nKruskal's algorithm\n-------------------" << endl;
+		kruskal(adjacencyMatrix);
+		cout << "\nBoruvka's algorithm\n-------------------" << endl;
+		boruvka(adjacencyMatrix);
+		cout << "\nJarnik & Prim's algorithm\n-------------------------" << endl;
+		jarnikPrim(adjacencyMatrix);
 		cout << "\nThis is an undirected graph" << endl;
 		if (detectCycles2(adjacencyMatrix)) {
 			cout << "Matrix contains a cycle" << endl;
@@ -324,7 +325,7 @@ bool cycleDFS2(int vertex, int parent, vector<bool>& visited, ListOfLists<double
     }
     return false;
 }
-// Fucntion to perform kruskal's algorithm to find a minimal spanning tree of a connected undirected graph using a adjacency matrix represented as a list of lists
+// Fucntion to perform kruskal's algorithm to find a minimal spanning tree of a connected undirected graph using an adjacency matrix represented as a list of lists
 void kruskal(ListOfLists<double> &matrix) {
 	// Variables
     int matrixSize = matrix.size(); // Store matrix size
@@ -346,17 +347,17 @@ void kruskal(ListOfLists<double> &matrix) {
 	// Get the weights of all the edges in the graph, from smallest to largest weighted edge, and assign them to the minimal spanning tree ... If adding an edge weight creates a cycle, remove it
     for (const auto& edge : edges) {
 		// Gets both row and column representation of edge weight (symmetric since graph must be undriected)
-        minimumSpanningTree[edge.first][edge.second] = matrix[edge.first][edge.second];
-        minimumSpanningTree[edge.second][edge.first] = matrix[edge.first][edge.second];
+        minimumSpanningTree[edge.first][edge.second] = minimumSpanningTree[edge.second][edge.first] = matrix[edge.first][edge.second];
 		// Check if adding an edge weight creates a cycle, if so, remove it
         if (detectCycles2(minimumSpanningTree)) {
             minimumSpanningTree[edge.first][edge.second] = minimumSpanningTree[edge.second][edge.first] = 0.0; // Remove the last edge if it creates a cycle
 		}
 	}
-	// Print the minimum spanning tree
+	// Print the minimum spanning tree by looping throught the entire minimal spanning tree matrix
     cout << "Minimum Spanning Tree Edges:" << endl;
-    for (int i = 0; i < matrixSize; ++i) {
-        for (int j = i + 1; j < matrixSize; ++j) {
+    for (int i = 0; i < matrixSize; i++) {
+        for (int j = i + 1; j < matrixSize; j++) {
+			// If there exists an edge in the minimal spanning tree, print the edge
             if (minimumSpanningTree[i][j] != 0.0) {
                 cout << "Edge: " << static_cast<char>('A' + i) << " - " << static_cast<char>('A' + j) << " Weight: " << minimumSpanningTree[i][j] << endl;
             }
@@ -365,76 +366,80 @@ void kruskal(ListOfLists<double> &matrix) {
 	cout << endl;
 	Print(minimumSpanningTree); // Display the minimum spanning tree
 }
+// Fucntion to perform Boruvka's algorithm to find a minimal spanning tree of a connected undirected graph using an adjacency matrix represented as a list of lists
 void boruvka(ListOfLists<double> &matrix) {
-	int numVertices = matrix.size();
-
+	int matrixSize = matrix.size(); // Store matrix size
+	ListOfLists<double> minimumSpanningTree(matrixSize, matrixSize); // Create minimum spanning tree
+	vector<pair<int, pair<int, int>>> edges;  // craete vector o store all edges with their endpoints
+	vector<int> treeRoot(matrixSize); // Vector to represent the one-node trees (vertex is root)
     // Initialize each vertex as the root of its own tree
-    vector<int> components(numVertices);
-    for (int i = 0; i < numVertices; ++i) {
-        components[i] = i;
+    for (int i = 0; i < matrixSize; ++i) {
+        treeRoot[i] = i;
     }
-
+	// Boruvka's algorithm Try to run forever ... will stop when only one tree exists (break)
     while (true) {
-        // To keep track of minimum weight edges for each component
-        vector<double> minEdgeWeight(numVertices, numeric_limits<double>::infinity());
-        vector<pair<int, int>> minEdge(numVertices, {-1, -1});
-
-        // Iterate through each edge and update minimum weight edges
-        for (int i = 0; i < numVertices; ++i) {
-            for (int j = 0; j < numVertices; ++j) {
+        vector<double> minEdgeWeight(matrixSize, numeric_limits<double>::infinity()); // Create vector to hold a minimum edge
+        vector<pair<int, int>> minEdge(matrixSize, {-1, -1}); // Create parallel vector to hold the minimum edge
+        // Iterate through each edge (all indices of matrix) and update minimum weight edges
+        for (int i = 0; i < matrixSize; ++i) {
+            for (int j = 0; j < matrixSize; ++j) {
+				// If there exists an edge
                 if (matrix[i][j] != 0.0) {
-                    int componentI = components[i];
-                    int componentJ = components[j];
-
-                    if (componentI != componentJ && matrix[i][j] < minEdgeWeight[componentI]) {
-                        minEdgeWeight[componentI] = matrix[i][j];
-                        minEdge[componentI] = {i, j};
+                    int tempI = treeRoot[i];
+                    int tempJ = treeRoot[j];
+					// Check for minimum weight edge and update the vectors to store the edge information .. in the case of edges to self, we do not want to consider it
+                    if (tempI != tempJ && matrix[i][j] < minEdgeWeight[tempI]) {
+                        minEdgeWeight[tempI] = matrix[i][j];
+                        minEdge[tempI] = {i, j};
                     }
                 }
             }
         }
-
         // Check if there is only one component remaining
         int uniqueComponents = 0;
-        int root = -1;
-        for (int i = 0; i < numVertices; ++i) {
-            if (components[i] == i) {
+        for (int i = 0; i < matrixSize; ++i) {
+            if (treeRoot[i] == i) {
                 ++uniqueComponents;
-                root = i;
             }
         }
-
+		// Check if only one component left, if so, the minimum spanning tree is formed (break loop condition)
         if (uniqueComponents == 1) {
-            break; // Only one component left, the minimum spanning tree is formed
+            break; 
         }
-
         // Combine trees based on the minimum weight edges
-        for (int i = 0; i < numVertices; ++i) {
+        for (int i = 0; i < matrixSize; ++i) {
             if (minEdge[i].first != -1) {
-                int componentI = components[minEdge[i].first];
-                int componentJ = components[minEdge[i].second];
+                int componentI = treeRoot[minEdge[i].first];
+                int componentJ = treeRoot[minEdge[i].second];
 
                 if (componentI != componentJ) {
                     // Combine the trees
-                    components[componentJ] = componentI;
+                    treeRoot[componentJ] = componentI;
 
                     // Update the graph to reflect the new component structure
-                    for (int k = 0; k < numVertices; ++k) {
-                        if (components[k] == componentJ) {
-                            components[k] = componentI;
+                    for (int k = 0; k < matrixSize; ++k) {
+                        if (treeRoot[k] == componentJ) {
+                            treeRoot[k] = componentI;
                         }
                     }
+                    // Store the edge with its endpoints
+					minimumSpanningTree[minEdge[i].first][minEdge[i].second] = minimumSpanningTree[minEdge[i].second][minEdge[i].first] = matrix[minEdge[i].first][minEdge[i].second];
                 }
             }
         }
-
-        // Output the minimum weight edges forming the minimum spanning tree
-        for (int i = 0; i < numVertices; ++i) {
-            if (minEdge[i].first != -1) {
-                cout << "Edge: " << minEdge[i].first << " - " << minEdge[i].second << " Weight: " << minEdgeWeight[i] << endl;
+    }
+	// Print the minimum spanning tree by looping throught the entire minimal spanning tree matrix
+	cout << "Minimum Spanning Tree Edges:" << endl;
+    for (int i = 0; i < matrixSize; i++) {
+        for (int j = i + 1; j < matrixSize; j++) {
+			// If there exists an edge in the minimal spanning tree, print the edge
+            if (minimumSpanningTree[i][j] != 0.0) {
+                cout << "Edge: " << static_cast<char>('A' + i) << " - " << static_cast<char>('A' + j) << " Weight: " << minimumSpanningTree[i][j] << endl;
             }
         }
     }
+	cout << endl;
+	Print(minimumSpanningTree); // Display the minimum spanning tree
 }
 void jarnikPrim(ListOfLists<double>& matrix) {
 	int numVertices = matrix.size();
@@ -475,15 +480,18 @@ void jarnikPrim(ListOfLists<double>& matrix) {
             }
         }
     }
-
-    // Output the minimum spanning tree
+    // Print the minimum spanning tree by looping throught the entire minimal spanning tree matrix
+	cout << "Minimum Spanning Tree Edges:" << endl;
     for (int i = 0; i < numVertices; ++i) {
         for (int j = i + 1; j < numVertices; ++j) {
+			// If there exists an edge in the minimal spanning tree, print the edge
             if (minimumSpanningTree[i][j] != 0.0) {
                 cout << "Edge: " << static_cast<char>('A' + i) << " - " << static_cast<char>('A' + j) << " Weight: " << minimumSpanningTree[i][j] << endl;
             }
         }
     }
+	cout << endl;
+	Print(minimumSpanningTree); // Display the minimum spanning tree
 }
 // Function to determine if a matrix represented as a list of lists is symmetric, meaning the graph is undirected
 bool isSymmetric(ListOfLists<double>& matrix) {
