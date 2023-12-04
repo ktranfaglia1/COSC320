@@ -75,7 +75,7 @@ int main() {
 				}
 				// If a space is retrieved, capture the number following the space
 				else if (matrixFile.peek() == ' ') {
-					matrixFile.get() == ' ';
+					matrixFile.get();
 					matrixFile >> num;
 					tempVector.push_back(num);
 				}
