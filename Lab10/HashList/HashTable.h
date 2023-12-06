@@ -1,7 +1,7 @@
 /* Kyle Tranfaglia
  * COSC320 - Lab10
  * 12/06/2023
- * Declaration and Implimentation of a Hash Table object using a list of list structure
+ * Declaration and Implimentation of a Hash Table object using a list of list structure and chaining for collision handling
 */
 #ifndef HASHTABLE_H_
 #define HASHTABLE_H_
@@ -10,126 +10,78 @@
 #include <iostream>
 #include <vector>
 
+#include "ListOfLists.h"
+
 using namespace std;
 
 template<class T>
 class HashTable {
 protected:
-	int size = 0;
-	// T *tab = nullptr;
-	// int (*hf)(T&);
-	vector<vector<T>> tab;
-	T empty;
-	T removed;
-
-	// int probe(int pos);
-
+	int (*hf)(T&);
+	ListOfLists<T> tab;
 public:
-	HashTable(int size, T e, T r);
+	HashTable(int, int (*)(T&));
 	virtual ~HashTable();
 	void insert(T);
 	void remove(T);
 	bool find(T);
-	void rehash(int sz);
+	void rehash(int);
 	void print();
 };
-
+// Constructor to set hash function and create initialize table
 template<class T>
-HashTable<T>::HashTable(int sz, T e, T r) {
-	size = sz;
-	empty = e;
-	removed = r;
-
-	for (int i = 0; i < size; i++) {
-		tab[i][0] = empty;
-	}
+HashTable<T>::HashTable(int size, int (*hashfct)(T&)) {
+	hf = hashfct;
+	tab.addRows(size);
 }
-
+// Destructor ... nothing needs done, ListOfLists structure handles memory deallocation
 template<class T>
 HashTable<T>::~HashTable() {
-	// delete[] tab;
 }
-
-// template<class T>
-// int HashTable<T>::probe(int pos) {
-// 	// Linear probe.
-// 	return (pos + 1) % size;
-// }
-
+// Insert function to insert an item into the hash table using the hash function to update the inner list
 template<class T>
 void HashTable<T>::insert(T item) {
-	// int pos = hf(item) % size;
-	// int initpos = pos;
-
-	// // If position is open probe loop is not done.
-	// while (tab[pos] != empty && tab[pos] != removed) {
-	// 	pos = probe(pos);
-	// 	if (pos == initpos)
-	// 		return;
-	// }
-
-	// tab[pos] = item;
-	int pos = item % size;
-	tab[pos].push_back(item);
+	int pos = hf(item) % tab.size(); // Get position to insert item using hash function
+	tab[pos].push_back(item); // Add item to inner list
 }
-
+// Remove function to remove an item from the hash table using the hash function to update the inner list
 template<class T>
 void HashTable<T>::remove(T item) {
-	// int pos = hf(item) % size;
-	// int initpos = pos;
-
-	// // If item is in first guess, probe loop is not done.
-	// while (tab[pos] != item) {
-	// 	pos = probe(pos);
-	// 	if (pos == initpos || tab[pos] == empty)
-	// 		return;
-	// }
-	// tab[pos] = removed;
-	int outterPos = item % size;
-	if (int innerPos = find(tab[outterPos].begin(), tab[outterPos].end(), item) != tab[outterPos].end()) {
-		tab[outterPos].erase(innerPos);
+	int outterPos = hf(item) % tab.size(); // Get position to insert item using hash function
+	// Check that the item exists in the inner list, if so remove it, otherwise do nothing
+	if (std::find(tab[outterPos].begin(), tab[outterPos].end(), item) != tab[outterPos].end()) {
+		tab[outterPos].erase(std::find(tab[outterPos].begin(), tab[outterPos].end(), item));
 	}
-	
-	
 }
-
+// Find function that uses the algorithm find to return if an item exists in the hash table
 template<class T>
 bool HashTable<T>::find(T item) {
-	// int pos = hf(item) % size;
-	// int initpos = pos;
-
-	// // If item is in first guess, probe loop is not done.
-	// while (tab[pos] != item) {
-	// 	pos = probe(pos);
-	// 	if (pos == initpos || tab[pos] == empty)
-	// 		return false;
-	// }
-
-	// return true;
-	int outterPos = item % size;
-	return find(tab[outterPos].begin(), tab[outterPos].end(), item) != tab[outterPos].end();
+	int outterPos = hf(item) % tab.size(); // Get position to insert item using hash function
+	return (std::find(tab[outterPos].begin(), tab[outterPos].end(), item) != tab[outterPos].end()); // Return boolean result of algorithm find
 }
-
+// Rehash function to rehash the hash table such that a new hash table is created with an updated size and set to the current hash table
 template<class T>
-void HashTable<T>::rehash(int sz) {
-	HashTable<T> newtable(sz, hf, empty, removed);
+void HashTable<T>::rehash(int size) {
+	HashTable<T> newtable(size, hf); // Create new hash table with updated size (same hash function)
+	// Loop through entire list of list structure to get each element in the inner list and insert it into the new hash table
 	for (int i = 0; i < size; i++) {
-		if (tab[i] != empty && tab[i] != removed) {
-			T item = tab[i];
-			newtable.insert(item);
+		for (unsigned int j = 0; j < tab[i].size(); j++) {
+			T item = tab[i][j]; // Get item from hash table
+			newtable.insert(item); // Add item to new hash tabale
 		}
 	}
-
-	delete[] tab;
-	tab = newtable.tab;
-	size = newtable.size;
-	newtable.tab = nullptr;
+	tab = newtable.tab; // Set hash table to new hash table
 }
-
+// Print function to display the contents of the hash table
 template<class T>
 void HashTable<T>::print() {
-	for (int i = 0; i < size; i++)
-		cout << i << ": " << tab[i] << endl;
+	// Loop through entire list of list structure to display the contents of the inner list all lists (outer list)
+	for (int i = 0; i < tab.size(); i++) {
+		cout << i << ": ";
+		for (unsigned int j = 0; j < tab[i].size(); j++) {
+			cout << tab[i][j] << " ";
+		}
+		cout << endl;
+	}
 }
-
 #endif /* HASHTABLE_H_ */
