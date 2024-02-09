@@ -38,7 +38,7 @@ HashTable<T>::HashTable(int size, int (*hashfct)(T&)) {
 template<class T>
 HashTable<T>::~HashTable() {
 }
-// Insert function to insert an item into the hash table using the hash function to update the inner list
+// Insert fun ction to insert an item into the hash table using the hash function to update the inner list
 template<class T>
 void HashTable<T>::insert(T item) {
 	int pos = hf(item) % tab.size(); // Get position to insert item using hash function
