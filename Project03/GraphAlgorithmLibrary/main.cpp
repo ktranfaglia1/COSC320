@@ -29,10 +29,10 @@ int main() {
 	vector<double> tempVector;
 	string line = "";
 	double num = 0;
-	// Set-up for tiny dialog box: Gets an N-Gram file (.txt) from the user 
-    // char const *lFilterPatterns[1] = { "*.txt" };
-    // char *matrixFileName = tinyfd_openFileDialog("Open an adjaceny matrix file", NULL, 1, lFilterPatterns, "adjaceny matrix File", 0);
-	char *matrixFileName = "MatrixTest1.txt";
+	// Set-up for tiny dialog box: Gets an Matrix file (.txt) from the user 
+    char const *lFilterPatterns[1] = { "*.txt" };
+    char *matrixFileName = tinyfd_openFileDialog("Open an adjaceny matrix file", NULL, 1, lFilterPatterns, "adjaceny matrix File", 0);
+	// char *matrixFileName = "MatrixTest1.txt";
     fstream matrixFile;
 
     matrixFile.open(matrixFileName, ios::in); // Opens input file
